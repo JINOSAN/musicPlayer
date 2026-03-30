@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Player</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- カスタムタイトルバー -->
+  <div class="titlebar">
+    <div class="titlebar-controls">
+      <button class="tb-btn close" id="btn-close" title="閉じる"></button>
+      <button class="tb-btn minimize" id="btn-minimize" title="最小化"></button>
+      <button class="tb-btn maximize" id="btn-maximize" title="最大化"></button>
+    </div>
+    <div class="titlebar-title">🎵 Music Player</div>
+    <div class="titlebar-spacer"></div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- 左パネル: プレイリスト -->
+    <div class="panel-left">
+      <div class="playlist-header">
+        <h2 class="panel-title">PLAYLIST</h2>
+        <span class="track-count" id="track-count">0 tracks</span>
+      </div>
+
+      <!-- ドロップゾーン -->
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-inner">
+          <div class="drop-icon">🎵</div>
+          <p class="drop-text">音楽・動画ファイルをここにドロップ</p>
+          <p class="drop-subtext">MP3 / M4A / MP4 / MOV など対応</p>
+        </div>
+      </div>
+
+      <!-- 保存済みプレイリスト -->
+      <div class="saved-playlists-section" id="saved-playlists-section">
+        <div class="saved-pl-header">
+          <span class="saved-pl-title">📂 SAVED PLAYLISTS</span>
+          <button class="saved-pl-toggle" id="btn-toggle-saved-pl" title="開く/閉じる">▾</button>
+        </div>
+        <div class="saved-pl-list" id="saved-pl-list">
+          <!-- 保存済みプレイリストがここに表示される -->
+          <div class="saved-pl-empty" id="saved-pl-empty">保存済みプレイリストなし</div>
+        </div>
+      </div>
+
+      <!-- プレイリスト -->
+      <div class="playlist-container" id="playlist-container">
+        <ul class="playlist" id="playlist"></ul>
+      </div>
+
+      <!-- プレイリスト操作 -->
+      <div class="playlist-actions">
+        <button class="action-btn" id="btn-save-playlist" title="現在のキューをプレイリストとして保存">
+          <span>💾</span> 保存
+        </button>
+        <button class="action-btn" id="btn-clear-playlist" title="選択中の曲を削除">
+          <span>🗑</span> 削除
+        </button>
+        <button class="action-btn" id="btn-shuffle" title="シャッフル">
+          <span>🔀</span> シャッフル
+        </button>
+      </div>
+    </div>
+
+    <!-- 中央パネル: メインプレイヤー -->
+    <div class="panel-center">
+
+      <!-- カバーアート / 動画オーバーレイ -->
+      <div class="cover-art-container" style="position:relative;">
+        <div class="cover-art-blur" id="cover-blur"></div>
+        <div class="cover-art-wrapper" id="cover-wrapper">
+          <img class="cover-art" id="cover-art" src="" alt="cover">
+          <div class="cover-placeholder" id="cover-placeholder">
+            <div class="placeholder-icon">🎵</div>
+          </div>
+        </div>
+        <!-- 動画再生時に表示されるオーバーレイ -->
+        <div class="video-overlay" id="video-overlay" style="display:none;"></div>
+      </div>
+
+      <!-- 楽曲情報 -->
+      <div class="track-info">
+        <div class="track-title" id="track-title">楽曲を選択してください</div>
+        <div class="track-artist" id="track-artist">—</div>
+        <div class="track-meta">
+          <span class="track-album" id="track-album"></span>
+          <span class="track-genre" id="track-genre"></span>
+          <span class="track-year" id="track-year"></span>
+        </div>
+      </div>
+
+      <!-- レベルメーター -->
+      <div class="level-meter-section">
+        <div class="level-meter-label">LEVEL</div>
+        <div class="level-meter" id="level-meter">
+          <div class="meter-bars" id="meter-bars-left">
+            <div class="meter-bar-wrapper">
+              <span class="ch-label">L</span>
+              <div class="meter-track">
+                <div class="meter-fill" id="meter-left"></div>
+              </div>
+            </div>
+          </div>
+          <div class="meter-bars" id="meter-bars-right">
+            <div class="meter-bar-wrapper">
+              <span class="ch-label">R</span>
+              <div class="meter-track">
+                <div class="meter-fill" id="meter-right"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- セグメント型レベルメーター -->
+        <div class="segment-meter" id="segment-meter">
+          <div class="seg-channel">
+            <span class="seg-label">L</span>
+            <div class="seg-track" id="seg-left"></div>
+          </div>
+          <div class="seg-channel">
+            <span class="seg-label">R</span>
+            <div class="seg-track" id="seg-right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- シークバー -->
+      <div class="seek-section">
+        <span class="time-label" id="current-time">0:00</span>
+        <div class="seek-bar-container">
+          <div class="seek-bar-bg" id="seek-bar-bg">
+            <div class="seek-bar-progress" id="seek-bar-progress"></div>
+            <input type="range" class="seek-bar" id="seek-bar" min="0" max="1000" value="0" step="1">
+          </div>
+        </div>
+        <span class="time-label" id="total-time">0:00</span>
+      </div>
+
+      <!-- 再生コントロール -->
+      <div class="controls-main">
+        <button class="ctrl-btn" id="btn-repeat" title="リピート (OFF→1曲→全曲)">
+          <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+          <span class="ctrl-badge repeat-badge" id="repeat-badge" style="display:none">1</span>
+        </button>
+        <button class="ctrl-btn" id="btn-prev" title="前の曲">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="ctrl-btn rewind" id="btn-rewind" title="10秒戻る">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+          <span class="ctrl-badge">10</span>
+        </button>
+        <button class="ctrl-btn play-pause" id="btn-play" title="再生/停止">
+          <svg class="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="icon-pause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="ctrl-btn forward" id="btn-forward" title="10秒進む">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/></svg>
+          <span class="ctrl-badge">10</span>
+        </button>
+        <button class="ctrl-btn" id="btn-next" title="次の曲">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button class="ctrl-btn" id="btn-shuffle-ctrl" title="シャッフル">
+          <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+        </button>
+      </div>
+
+      <!-- 速度・音量コントロール -->
+      <div class="controls-sub">
+        <div class="sub-control">
+          <label class="sub-label">SPEED</label>
+          <div class="speed-controls">
+            <button class="speed-preset-btn" data-speed="0.5">0.5x</button>
+            <button class="speed-preset-btn" data-speed="0.75">0.75x</button>
+            <button class="speed-preset-btn active" data-speed="1.0">1.0x</button>
+            <button class="speed-preset-btn" data-speed="1.25">1.25x</button>
+            <button class="speed-preset-btn" data-speed="1.5">1.5x</button>
+            <button class="speed-preset-btn" data-speed="2.0">2.0x</button>
+          </div>
+          <div class="speed-custom">
+            <input type="number" id="speed-input" value="1.0" min="0.1" max="4.0" step="0.05" class="speed-number-input">
+            <span class="speed-unit">x</span>
+            <button class="speed-apply-btn" id="btn-apply-speed">SET</button>
+          </div>
+        </div>
+
+        <div class="sub-control volume-ctrl">
+          <label class="sub-label">VOLUME</label>
+          <div class="volume-row">
+            <span class="vol-icon">🔈</span>
+            <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="80">
+            <span class="vol-icon">🔊</span>
+            <span class="vol-value" id="vol-value">80%</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右パネル: イコライザー & エフェクト -->
+    <div class="panel-right">
+
+      <!-- タブ -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="equalizer">EQ</button>
+        <button class="tab-btn" data-tab="spatial">SPATIAL</button>
+        <button class="tab-btn" data-tab="info">INFO</button>
+      </div>
+
+      <!-- イコライザータブ -->
+      <div class="tab-content active" id="tab-equalizer">
+        <div class="eq-header">
+          <span class="eq-title">EQUALIZER</span>
+          <div class="eq-switch">
+            <label class="toggle-label">
+              <input type="checkbox" id="eq-toggle" checked>
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- EQプリセット -->
+        <div class="eq-presets">
+          <button class="preset-btn" data-preset="flat">Flat</button>
+          <button class="preset-btn active" data-preset="rock">Rock</button>
+          <button class="preset-btn" data-preset="pop">Pop</button>
+          <button class="preset-btn" data-preset="jazz">Jazz</button>
+          <button class="preset-btn" data-preset="classical">Classical</button>
+          <button class="preset-btn" data-preset="voice">Voice</button>
+          <button class="preset-btn" data-preset="bass">Bass↑</button>
+          <button class="preset-btn" data-preset="heavymetal">Heavy Metal</button>
+        </div>
+
+        <!-- 5バンドEQ -->
+        <div class="eq-bands">
+          <div class="eq-band">
+            <span class="eq-value" id="eq-val-0">0dB</span>
+            <div class="eq-slider-container">
+              <input type="range" class="eq-slider" id="eq-0" min="-12" max="12" value="0" step="0.5" orient="vertical">
+              <div class="eq-center-line"></div>
+            </div>
+            <span class="eq-freq">60Hz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-value" id="eq-val-1">0dB</span>
+            <div class="eq-slider-container">
+              <input type="range" class="eq-slider" id="eq-1" min="-12" max="12" value="0" step="0.5" orient="vertical">
+              <div class="eq-center-line"></div>
+            </div>
+            <span class="eq-freq">250Hz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-value" id="eq-val-2">0dB</span>
+            <div class="eq-slider-container">
+              <input type="range" class="eq-slider" id="eq-2" min="-12" max="12" value="0" step="0.5" orient="vertical">
+              <div class="eq-center-line"></div>
+            </div>
+            <span class="eq-freq">1kHz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-value" id="eq-val-3">0dB</span>
+            <div class="eq-slider-container">
+              <input type="range" class="eq-slider" id="eq-3" min="-12" max="12" value="0" step="0.5" orient="vertical">
+              <div class="eq-center-line"></div>
+            </div>
+            <span class="eq-freq">4kHz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-value" id="eq-val-4">0dB</span>
+            <div class="eq-slider-container">
+              <input type="range" class="eq-slider" id="eq-4" min="-12" max="12" value="0" step="0.5" orient="vertical">
+              <div class="eq-center-line"></div>
+            </div>
+            <span class="eq-freq">16kHz</span>
+          </div>
+        </div>
+
+        <!-- EQリセット -->
+        <button class="eq-reset-btn" id="btn-eq-reset">リセット</button>
+      </div>
+
+      <!-- Spatial Audioタブ -->
+      <div class="tab-content" id="tab-spatial">
+        <div class="spatial-header">
+          <span class="spatial-title">SPATIAL AUDIO</span>
+          <label class="toggle-label">
+            <input type="checkbox" id="spatial-toggle">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="spatial-modes">
+          <div class="spatial-mode-btn active" data-mode="off">
+            <div class="mode-icon">🎧</div>
+            <span>OFF</span>
+          </div>
+          <div class="spatial-mode-btn" data-mode="concert">
+            <div class="mode-icon">🎭</div>
+            <span>Concert</span>
+          </div>
+          <div class="spatial-mode-btn" data-mode="theater">
+            <div class="mode-icon">🎬</div>
+            <span>Theater</span>
+          </div>
+          <div class="spatial-mode-btn" data-mode="room">
+            <div class="mode-icon">🏠</div>
+            <span>Room</span>
+          </div>
+          <div class="spatial-mode-btn" data-mode="studio">
+            <div class="mode-icon">🎙</div>
+            <span>Studio</span>
+          </div>
+          <div class="spatial-mode-btn" data-mode="outdoor">
+            <div class="mode-icon">🌳</div>
+            <span>Outdoor</span>
+          </div>
+        </div>
+
+        <div class="spatial-controls">
+          <div class="spatial-param">
+            <label>リバーブ</label>
+            <input type="range" id="reverb-slider" min="0" max="100" value="0" class="param-slider">
+            <span class="param-value" id="reverb-val">0%</span>
+          </div>
+          <div class="spatial-param">
+            <label>ステレオ幅</label>
+            <input type="range" id="stereo-slider" min="0" max="200" value="100" class="param-slider">
+            <span class="param-value" id="stereo-val">100%</span>
+          </div>
+          <div class="spatial-param">
+            <label>コンプレッサー</label>
+            <input type="range" id="comp-slider" min="0" max="100" value="0" class="param-slider">
+            <span class="param-value" id="comp-val">0%</span>
+          </div>
+        </div>
+
+        <div class="spatial-badge">
+          <div class="dolby-badge">✦ Dolby Atmos風 空間音響</div>
+        </div>
+      </div>
+
+      <!-- 楽曲情報タブ -->
+      <div class="tab-content" id="tab-info">
+        <div class="info-cover">
+          <img id="info-cover" src="" alt="">
+          <div class="info-cover-placeholder" id="info-cover-placeholder">🎵</div>
+        </div>
+        <div class="info-list">
+          <div class="info-row"><span class="info-key">Title</span><span class="info-val" id="info-title">—</span></div>
+          <div class="info-row"><span class="info-key">Artist</span><span class="info-val" id="info-artist">—</span></div>
+          <div class="info-row"><span class="info-key">Album</span><span class="info-val" id="info-album">—</span></div>
+          <div class="info-row"><span class="info-key">Year</span><span class="info-val" id="info-year">—</span></div>
+          <div class="info-row"><span class="info-key">Genre</span><span class="info-val" id="info-genre">—</span></div>
+          <div class="info-row"><span class="info-key">Duration</span><span class="info-val" id="info-duration">—</span></div>
+          <div class="info-row"><span class="info-key">Speed</span><span class="info-val" id="info-speed">1.0x</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- スペクトラムビジュアライザー (底部) -->
+  <div class="visualizer-section">
+    <canvas id="visualizer-canvas" class="visualizer-canvas"></canvas>
+  </div>
+
+  <!-- プレイリスト保存ダイアログ -->
+  <div class="pl-dialog-overlay" id="pl-dialog-overlay" style="display:none">
+    <div class="pl-dialog">
+      <div class="pl-dialog-title">💾 プレイリストを保存</div>
+      <div class="pl-dialog-body">
+        <label class="pl-dialog-label">プレイリスト名</label>
+        <input type="text" class="pl-dialog-input" id="pl-name-input" placeholder="例: My Favorites" maxlength="40" autocomplete="off">
+        <div class="pl-dialog-info" id="pl-dialog-info">0 曲を保存します</div>
+
+        <!-- 既存プレイリスト名サジェスト -->
+        <div class="pl-existing-section" id="pl-existing-section" style="display:none">
+          <div class="pl-existing-label">既存のプレイリスト（クリックで選択）</div>
+          <div class="pl-existing-list" id="pl-existing-list"></div>
+        </div>
+
+        <!-- 上書き確認メッセージ -->
+        <div class="pl-overwrite-msg" id="pl-overwrite-msg" style="display:none">
+          ⚠️ 同名のプレイリストが存在します。上書きしますか？
+        </div>
+      </div>
+      <div class="pl-dialog-actions">
+        <button class="pl-dialog-btn cancel" id="pl-dialog-cancel">キャンセル</button>
+        <button class="pl-dialog-btn save" id="pl-dialog-save">新規保存</button>
+        <button class="pl-dialog-btn overwrite" id="pl-dialog-overwrite" style="display:none">上書き保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="audioEngine.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
